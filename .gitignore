@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# InfluxDB local data volume
+influxdb-data/
+
+# Grafana local data volume
+grafana-data/
+
+# Mosquitto persistence
+broker/data/
+broker/log/
+
+# VS Code
+.vscode/
