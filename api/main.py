@@ -41,6 +41,11 @@ from(bucket: "{INFLUX_BUCKET}")
 """
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.get("/")
 def serve_dashboard():
     return FileResponse(str(FRONTEND), media_type="text/html")
