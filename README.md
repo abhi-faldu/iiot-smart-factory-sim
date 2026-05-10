@@ -350,9 +350,3 @@ docker compose down -v   # also removes data volumes
 - [x] AI4I 2020 dataset replay script — injects real fault data into the pipeline
 - [x] Docker Compose — 6-service stack, InfluxDB health check, automatic restart
 
----
-
-<div align="center">
-  <sub>Built as part of a portfolio targeting Industry 4.0 internships at German automotive companies.<br>
-  Complements <a href="https://github.com/abhi-faldu/robotic-bearing-pdm">robotic-bearing-pdm</a> — LSTM Autoencoder predictive maintenance on NASA IMS bearing data.</sub>
-</div>
