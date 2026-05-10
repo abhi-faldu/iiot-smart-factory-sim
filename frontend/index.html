@@ -211,6 +211,106 @@
   .foot .sep { margin: 0 10px; color: var(--border-strong); }
 
   @media (max-width: 1100px) { .arm-grid { grid-template-columns: 1fr; } }
+
+  /* ---------- METRIC TILE (clickable) ---------- */
+  .metric { cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .metric:hover { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 8%, var(--bg-2)); }
+  .metric:hover .label { color: var(--accent); }
+  .metric .click-hint {
+    position: absolute; bottom: 4px; right: 6px;
+    font-size: 9px; color: var(--text-faint); letter-spacing: 0.06em; text-transform: uppercase;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .metric:hover .click-hint { opacity: 1; }
+  .metric { position: relative; }
+
+  /* ---------- SENSOR MODAL ---------- */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface); border: 1px solid var(--border-strong);
+    width: 100%; max-width: 680px; max-height: 90vh;
+    display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    background: var(--bg-2); flex-shrink: 0;
+  }
+  .modal-title-group { display: flex; align-items: center; gap: 12px; }
+  .modal-arm-swatch { width: 12px; height: 12px; flex-shrink: 0; }
+  .modal-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .modal-subtitle { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+  .modal-close {
+    background: none; border: 1px solid var(--border); color: var(--text-dim);
+    width: 28px; height: 28px; font-size: 16px; cursor: pointer; display: grid; place-items: center;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .modal-close:hover { border-color: var(--danger); color: var(--danger); }
+
+  .modal-body { overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+  .modal-body::-webkit-scrollbar { width: 6px; }
+  .modal-body::-webkit-scrollbar-thumb { background: var(--border-strong); }
+
+  .modal-section-label {
+    font-size: 10px; font-weight: 600; color: var(--text-faint);
+    letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .modal-section-label::before { content: ""; width: 3px; height: 3px; background: var(--accent); }
+
+  /* snapshot row */
+  .modal-snapshot { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start; }
+  .modal-big-value { display: flex; align-items: baseline; gap: 4px; }
+  .modal-big-value .mono { font-size: 48px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+  .modal-unit { font-size: 18px; color: var(--text-dim); font-weight: 500; }
+  .modal-right { display: flex; flex-direction: column; gap: 12px; }
+  .modal-stats { display: flex; gap: 16px; }
+  .modal-stat { background: var(--bg-2); border: 1px solid var(--border); padding: 8px 12px; min-width: 80px; }
+  .modal-stat-label { font-size: 9px; color: var(--text-faint); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+  .modal-stat-val { font-size: 15px; font-weight: 600; }
+
+  /* Z-score gauge */
+  .modal-zscore-row { display: flex; align-items: center; gap: 10px; }
+  .modal-zscore-label { font-size: 10px; color: var(--text-faint); letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+  .modal-zscore-track { flex: 1; height: 6px; background: var(--bg-2); border: 1px solid var(--border); position: relative; overflow: hidden; }
+  .modal-zscore-fill { height: 100%; width: 0; transition: width 0.4s, background 0.4s; }
+  .modal-zscore-val { font-size: 12px; font-weight: 600; white-space: nowrap; min-width: 48px; text-align: right; }
+
+  /* recommendations */
+  .modal-rec-box {
+    border: 1px solid var(--border); background: var(--bg-2);
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .modal-rec-status { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+  .modal-rec-status .rec-icon { font-size: 16px; }
+  .modal-rec-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+  .modal-rec-actions { display: flex; flex-direction: column; gap: 6px; }
+  .modal-rec-action {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 12px; color: var(--text-dim); padding: 7px 10px;
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .modal-rec-action .num {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+    color: var(--accent); flex-shrink: 0; margin-top: 1px;
+  }
+
+  /* anomaly history */
+  .modal-hist-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .modal-hist-row:last-child { border-bottom: none; }
+  .modal-hist-row.anom { background: rgba(239,68,68,0.06); }
+  .modal-hist-empty { font-size: 12px; color: var(--text-faint); font-style: italic; padding: 12px; text-align: center; }
 </style>
 </head>
 <body>
@@ -336,6 +436,71 @@
   </div>
 </main>
 
+<!-- ===== SENSOR DETAIL MODAL ===== -->
+<div id="sensor-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title-el">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <span class="modal-arm-swatch" id="modal-arm-swatch"></span>
+        <div>
+          <div class="modal-title" id="modal-title-el">—</div>
+          <div class="modal-subtitle" id="modal-subtitle">—</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="badge normal" id="modal-badge"><span class="ind"></span>NORMAL</span>
+        <button class="modal-close" id="modal-close" aria-label="Close dialog">×</button>
+      </div>
+    </div>
+    <div class="modal-body">
+
+      <!-- Live snapshot -->
+      <div>
+        <div class="modal-section-label">LIVE READING</div>
+        <div class="modal-snapshot">
+          <div>
+            <div class="modal-big-value">
+              <span class="mono" id="modal-value">--</span>
+              <span class="modal-unit" id="modal-unit"></span>
+            </div>
+          </div>
+          <div class="modal-right">
+            <div class="modal-stats">
+              <div class="modal-stat"><div class="modal-stat-label">MIN · 5min</div><div class="modal-stat-val mono" id="modal-min">--</div></div>
+              <div class="modal-stat"><div class="modal-stat-label">AVG · 5min</div><div class="modal-stat-val mono" id="modal-avg">--</div></div>
+              <div class="modal-stat"><div class="modal-stat-label">MAX · 5min</div><div class="modal-stat-val mono" id="modal-max">--</div></div>
+            </div>
+            <div class="modal-zscore-row">
+              <span class="modal-zscore-label">Z-SCORE</span>
+              <div class="modal-zscore-track"><div class="modal-zscore-fill" id="modal-z-fill"></div></div>
+              <span class="modal-zscore-val mono" id="modal-z-val">0.00σ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mini chart -->
+      <div>
+        <div class="modal-section-label">TREND · LAST 5 MINUTES</div>
+        <div style="height:130px;position:relative;"><canvas id="modal-chart"></canvas></div>
+      </div>
+
+      <!-- Recommendations -->
+      <div>
+        <div class="modal-section-label">DIAGNOSTICS &amp; RECOMMENDATIONS</div>
+        <div id="modal-rec-content"></div>
+      </div>
+
+      <!-- Recent anomalies -->
+      <div>
+        <div class="modal-section-label">RECENT ANOMALY EVENTS · THIS SENSOR</div>
+        <div id="modal-history-content" style="border:1px solid var(--border);"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script>
 window.addEventListener('error', function(e) {
   if ((!e.filename && !e.lineno) || e.message === 'Script error.' || e.message === 'Script error') {
@@ -405,17 +570,20 @@ function buildArmCards() {
         <span class="badge normal" id="badge-${a.id}"><span class="ind"></span>NORMAL</span>
       </div>
       <div class="arm-metrics">
-        <div class="metric" id="m-${a.id}-temperature">
+        <div class="metric" id="m-${a.id}-temperature" onclick="openSensorModal('${a.id}','temperature')" title="Click for details">
           <span class="label">Temp</span>
           <span><span class="value mono">--</span><span class="unit">°C</span></span>
+          <span class="click-hint">details</span>
         </div>
-        <div class="metric" id="m-${a.id}-vibration">
+        <div class="metric" id="m-${a.id}-vibration" onclick="openSensorModal('${a.id}','vibration')" title="Click for details">
           <span class="label">Vibration</span>
           <span><span class="value mono">--</span><span class="unit">g</span></span>
+          <span class="click-hint">details</span>
         </div>
-        <div class="metric" id="m-${a.id}-current">
+        <div class="metric" id="m-${a.id}-current" onclick="openSensorModal('${a.id}','current')" title="Click for details">
           <span class="label">Current</span>
           <span><span class="value mono">--</span><span class="unit">A</span></span>
+          <span class="click-hint">details</span>
         </div>
       </div>
       <div class="arm-footer">
@@ -810,6 +978,227 @@ async function tick() {
   renderLog();
   document.getElementById('last-update').textContent = 'UPDATED · ' + formatTime(new Date());
 }
+
+/* =========================================================================
+   SENSOR DETAIL MODAL
+   ========================================================================= */
+
+const RECOMMENDATIONS = {
+  temperature: {
+    NORMAL:          { icon: '✓', color: 'var(--ok)',   title: 'Temperature Nominal',         desc: 'Operating within normal range (40–85°C). Thermal management is functioning correctly.', actions: [] },
+    THERMAL_DRIFT:   { icon: '⚠', color: 'var(--danger)', title: 'Thermal Drift Detected',    desc: 'Gradual temperature increase detected. This pattern indicates reduced heat dissipation or increased friction.', actions: ['Verify coolant flow rate and check for blockages', 'Inspect lubricant level and quality at all joints', 'Check ambient temperature near the arm — consider ventilation', 'Reduce duty cycle by 15% until temperature stabilises'] },
+    VIBRATION_SPIKE: { icon: '→', color: 'var(--warn)',  title: 'Vibration Fault Active',      desc: 'Vibration spike active on this arm. Elevated mechanical stress can increase thermal load over time.', actions: ['Monitor temperature closely — vibration adds friction heat', 'Check bearing lubrication — wear increases both vibration and temperature'] },
+    OVERCURRENT:     { icon: '→', color: 'var(--warn)',  title: 'Motor Overcurrent Active',    desc: 'Motor overcurrent active on this arm. Excess current generates heat — watch for thermal cascade.', actions: ['Monitor temperature trend — current faults often precede thermal faults', 'Ensure cooling fins are clear of debris'] },
+  },
+  vibration: {
+    NORMAL:          { icon: '✓', color: 'var(--ok)',   title: 'Vibration Nominal',            desc: 'Operating within normal range (0.1–3.0g). Bearing and mounting conditions are nominal.', actions: [] },
+    VIBRATION_SPIKE: { icon: '⚠', color: 'var(--warn)', title: 'Vibration Spike Detected',    desc: 'Abnormal vibration amplitude detected. This pattern is consistent with bearing wear, mechanical looseness, or resonance.', actions: ['Inspect bearing condition — check for pitting or surface wear', 'Verify mounting bolt torque on the base and wrist joints', 'Reduce feed rate by 20% to confirm vibration source is load-dependent', 'Schedule preventive maintenance if spike recurs within 10 minutes'] },
+    THERMAL_DRIFT:   { icon: '→', color: 'var(--warn)',  title: 'Thermal Fault Active',        desc: 'Thermal drift active on this arm. Elevated temperature causes thermal expansion which can affect bearing clearance.', actions: ['Monitor vibration trend as temperature rises — clearance changes amplify vibration', 'Check bearing preload if vibration increases with temperature'] },
+    OVERCURRENT:     { icon: '→', color: 'var(--overcurrent)', title: 'Motor Overcurrent Active', desc: 'Motor overcurrent active. Electrical faults can cause irregular torque pulses that appear as vibration.', actions: ['Correlate vibration spikes with current spikes in the timeline', 'Inspect drive electronics if both sensors show simultaneous anomalies'] },
+  },
+  current: {
+    NORMAL:          { icon: '✓', color: 'var(--ok)',   title: 'Motor Current Nominal',        desc: 'Operating within normal range (2–10A). Motor load is within specification.', actions: [] },
+    OVERCURRENT:     { icon: '⚠', color: 'var(--overcurrent)', title: 'Motor Overcurrent Detected', desc: 'Motor drawing excess current. This indicates increased mechanical resistance, an electrical fault, or an overloaded motion profile.', actions: ['Check for mechanical resistance — inspect all joints for obstructions', 'Verify drive belt or gearbox condition — worn components increase drag', 'Reduce cycle speed by 25% and observe whether current drops', 'Check drive controller temperature — overheating causes current spikes'] },
+    THERMAL_DRIFT:   { icon: '→', color: 'var(--danger)', title: 'Thermal Fault Active',       desc: 'Thermal drift active on this arm. High temperature increases motor winding resistance, which can falsely elevate current readings.', actions: ['Allow arm to cool before assessing current fault', 'Check for insulation degradation if both faults persist together'] },
+    VIBRATION_SPIKE: { icon: '→', color: 'var(--warn)',  title: 'Vibration Fault Active',      desc: 'Vibration spike active. Mechanical looseness can cause irregular load torque, producing current fluctuations.', actions: ['Compare current and vibration charts — simultaneous spikes suggest a mechanical root cause'] },
+  },
+};
+
+let _modalChart = null;
+let _modalArm   = null;
+let _modalSensor = null;
+
+function openSensorModal(armId, sensorId) {
+  _modalArm    = ARMS.find(a => a.id === armId);
+  _modalSensor = SENSORS.find(s => s.id === sensorId);
+  if (!_modalArm || !_modalSensor) return;
+
+  const overlay = document.getElementById('sensor-modal');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  _refreshModalContent();
+}
+
+function closeSensorModal() {
+  document.getElementById('sensor-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  if (_modalChart) { _modalChart.destroy(); _modalChart = null; }
+}
+
+function _refreshModalContent() {
+  if (!_modalArm || !_modalSensor) return;
+  const arm = _modalArm, sensor = _modalSensor;
+  const data   = state.latest[arm.id] || {};
+  const hist   = state.history[arm.id][sensor.id] || [];
+  const fmKey  = (data.fault_mode || 'NORMAL').toUpperCase();
+  const fm     = FAULT_MODES[fmKey] || FAULT_MODES.NORMAL;
+  const curVal = data[sensor.id];
+  const lastZ  = hist.length ? (hist[hist.length - 1].z || 0) : 0;
+
+  // Header
+  document.getElementById('modal-title-el').textContent = `${arm.label} · ${sensor.label}`;
+  document.getElementById('modal-subtitle').textContent  = `NODE · ${arm.id.toUpperCase()}`;
+  const swatch = document.getElementById('modal-arm-swatch');
+  swatch.style.background = arm.color;
+  const badge = document.getElementById('modal-badge');
+  badge.className = `badge ${fm.cls}`;
+  badge.innerHTML = `<span class="ind"></span>${fm.text}`;
+
+  // Live value
+  document.getElementById('modal-value').textContent = curVal != null ? curVal.toFixed(sensor.decimals) : '--';
+  document.getElementById('modal-unit').textContent  = sensor.unit;
+
+  // Stats (last 5 min)
+  const cutoff5m  = Date.now() - 5 * 60 * 1000;
+  const recent    = hist.filter(p => p.t >= cutoff5m).map(p => p.v);
+  const fmtStat   = v => v.toFixed(sensor.decimals);
+  document.getElementById('modal-min').textContent = recent.length ? fmtStat(Math.min(...recent)) : '--';
+  document.getElementById('modal-avg').textContent = recent.length ? fmtStat(recent.reduce((a,b)=>a+b,0)/recent.length) : '--';
+  document.getElementById('modal-max').textContent = recent.length ? fmtStat(Math.max(...recent)) : '--';
+
+  // Z-score gauge
+  const absZ   = Math.abs(lastZ);
+  const pct    = Math.min(absZ / 5, 1) * 100;
+  const zColor = absZ >= Z_THRESH ? 'var(--danger)' : absZ >= 2 ? 'var(--warn)' : 'var(--ok)';
+  document.getElementById('modal-z-fill').style.width      = pct + '%';
+  document.getElementById('modal-z-fill').style.background = zColor;
+  document.getElementById('modal-z-val').style.color       = zColor;
+  document.getElementById('modal-z-val').textContent       = (lastZ >= 0 ? '+' : '') + lastZ.toFixed(2) + 'σ';
+
+  // Mini chart
+  _buildModalChart(hist);
+
+  // Recommendations
+  _renderRecommendations(sensor.id, fmKey);
+
+  // Anomaly history
+  _renderModalHistory(arm.id, sensor.id);
+}
+
+function _buildModalChart(hist) {
+  if (_modalChart) { _modalChart.destroy(); _modalChart = null; }
+  const cutoff5m = Date.now() - 5 * 60 * 1000;
+  const pts      = hist.filter(p => p.t >= cutoff5m);
+  const ctx      = document.getElementById('modal-chart').getContext('2d');
+  const armColor = _modalArm.color;
+
+  const anomalyDots = pts
+    .filter(p => Math.abs(p.z) >= Z_THRESH)
+    .map(p => ({ x: p.t, y: p.v }));
+
+  _modalChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label: _modalSensor.label,
+          data: pts.map(p => ({ x: p.t, y: p.v })),
+          borderColor: armColor, backgroundColor: armColor,
+          borderWidth: 1.8, pointRadius: 0, tension: 0.25, spanGaps: true,
+        },
+        {
+          label: 'Anomalies',
+          data: anomalyDots,
+          showLine: false,
+          pointRadius: 5, pointHoverRadius: 7,
+          pointBackgroundColor: getCssVar('--danger'),
+          pointBorderColor: '#fff', pointBorderWidth: 1.5,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0c0e14', borderColor: getCssVar('--border-strong'),
+          borderWidth: 1, padding: 8, cornerRadius: 0,
+          callbacks: {
+            label: item => `${item.parsed.y.toFixed(_modalSensor.decimals)} ${_modalSensor.unit}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'minute', displayFormats: { minute: 'HH:mm' } },
+          ticks: { color: getCssVar('--text-faint'), maxRotation: 0, maxTicksLimit: 6 },
+          grid: { color: getCssVar('--border'), drawTicks: false },
+          border: { color: getCssVar('--border-strong') },
+        },
+        y: {
+          ticks: { color: getCssVar('--text-faint') },
+          grid: { color: getCssVar('--border'), drawTicks: false },
+          border: { color: getCssVar('--border-strong') },
+        },
+      },
+    },
+  });
+}
+
+function _renderRecommendations(sensorId, faultMode) {
+  const rec = (RECOMMENDATIONS[sensorId] || {})[faultMode]
+           || (RECOMMENDATIONS[sensorId] || {})['NORMAL'];
+  if (!rec) return;
+
+  const actionsHtml = rec.actions.length
+    ? `<div class="modal-rec-actions">${
+        rec.actions.map((a, i) =>
+          `<div class="modal-rec-action"><span class="num">${String(i+1).padStart(2,'0')}</span><span>${a}</span></div>`
+        ).join('')
+      }</div>`
+    : '';
+
+  document.getElementById('modal-rec-content').innerHTML = `
+    <div class="modal-rec-box">
+      <div class="modal-rec-status" style="color:${rec.color}">
+        <span class="rec-icon">${rec.icon}</span>
+        <span>${rec.title}</span>
+      </div>
+      <div class="modal-rec-desc">${rec.desc}</div>
+      ${actionsHtml}
+    </div>
+  `;
+}
+
+function _renderModalHistory(armId, sensorId) {
+  const hourAgo = Date.now() - 3600 * 1000;
+  const events  = state.anomalies
+    .filter(r => r.arm === armId && r.sensor === sensorId && r.ts >= hourAgo)
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, 8);
+
+  const sensorDef = SENSORS.find(s => s.id === sensorId);
+  const el = document.getElementById('modal-history-content');
+
+  if (!events.length) {
+    el.innerHTML = `<div class="modal-hist-empty">No anomaly events in the last hour — sensor nominal.</div>`;
+    return;
+  }
+
+  el.innerHTML = events.map(r => {
+    const isAnom = Math.abs(r.z) >= Z_THRESH;
+    const ts     = new Date(r.ts);
+    const fm     = FAULT_MODES[r.fault_mode] || FAULT_MODES.NORMAL;
+    const fmColor = fm.cls === 'normal' ? 'ok' : fm.cls;
+    return `<div class="modal-hist-row ${isAnom ? 'anom' : ''}">
+      <span class="mono" style="color:var(--text-dim)">${pad(ts.getHours())}:${pad(ts.getMinutes())}:${pad(ts.getSeconds())}</span>
+      <span class="mono">${r.value.toFixed(sensorDef ? sensorDef.decimals : 2)} ${sensorDef ? sensorDef.unit : ''}</span>
+      <span class="mono" style="color:${Math.abs(r.z)>=Z_THRESH?'var(--danger)':'var(--text-dim)'}">${r.z>=0?'+':''}${r.z.toFixed(2)}σ</span>
+      <span class="pill-mini" style="color:var(--${fmColor})">${fm.text}</span>
+    </div>`;
+  }).join('');
+}
+
+/* close on overlay click or Escape */
+document.getElementById('sensor-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeSensorModal();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSensorModal();
+});
+document.getElementById('modal-close').addEventListener('click', closeSensorModal);
 
 function boot() {
   buildArmCards();
