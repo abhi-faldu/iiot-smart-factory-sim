@@ -356,9 +356,9 @@ const ARMS = [
   { id: 'arm_03', label: 'Arm 03', color: getCssVar('--arm3') },
 ];
 const SENSORS = [
-  { id: 'temperature', label: 'Temperature', unit: '°C',  baseline: 52,   std: 2.4,  decimals: 1 },
-  { id: 'vibration',   label: 'Vibration',   unit: 'g',   baseline: 0.42, std: 0.06, decimals: 3 },
-  { id: 'current',     label: 'Current',     unit: 'A',   baseline: 14.2, std: 1.1,  decimals: 2 },
+  { id: 'temperature', label: 'Temperature', unit: '°C',  baseline: 62.5, std: 2.4,  decimals: 1 },
+  { id: 'vibration',   label: 'Vibration',   unit: 'g',   baseline: 1.55, std: 0.06, decimals: 3 },
+  { id: 'current',     label: 'Current',     unit: 'A',   baseline: 6.0,  std: 1.1,  decimals: 2 },
 ];
 const FAULT_MODES = {
   NORMAL:          { cls: 'normal',      text: 'NORMAL' },
@@ -721,7 +721,7 @@ const sim = {
       const reading = {};
       SENSORS.forEach(s => {
         let v = s.baseline + this.noise(s.std) + (ARMS.indexOf(arm) - 1) * s.std * 0.6;
-        if (fault === 'THERMAL_DRIFT'    && s.id === 'temperature') v += 6 + Math.random() * 4;
+        if (fault === 'THERMAL_DRIFT'    && s.id === 'temperature') v += 10 + Math.random() * 20;
         if (fault === 'VIBRATION_SPIKE'  && s.id === 'vibration')   v += 0.18 + Math.random() * 0.10;
         if (fault === 'OVERCURRENT'      && s.id === 'current')     v += 4 + Math.random() * 2.5;
         reading[s.id] = v;
@@ -813,9 +813,9 @@ async function tick() {
 
 function boot() {
   buildArmCards();
-  window['_chart-temp'] = makeLineChart('chart-temp', '°C', 35, 110);
-  window['_chart-vib']  = makeLineChart('chart-vib',  'g',  0.0, 5.0);
-  window['_chart-cur']  = makeLineChart('chart-cur',  'A',  0.0, 25.0);
+  window['_chart-temp'] = makeLineChart('chart-temp', '°C', 35,  95);
+  window['_chart-vib']  = makeLineChart('chart-vib',  'g',  0.0, 3.5);
+  window['_chart-cur']  = makeLineChart('chart-cur',  'A',  0.0, 15.0);
   buildZChart();
   tickClock();
   setInterval(tickClock, 1000);
