@@ -4,7 +4,7 @@ from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 
-INFLUX_URL = os.getenv("INFLUX_URL", "http://influxdb:8086")
+INFLUX_URL = os.getenv("INFLUX_URL", "http://localhost:8086")   # was influxdb
 INFLUX_TOKEN = os.getenv("INFLUX_TOKEN", "factory-token")
 INFLUX_ORG = os.getenv("INFLUX_ORG", "factory")
 INFLUX_BUCKET = os.getenv("INFLUX_BUCKET", "sensors")
@@ -41,7 +41,7 @@ class InfluxWriter:
         )
         self._write_api.write(
             bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=point,
-            write_precision=WritePrecision.SECONDS,
+            write_precision=WritePrecision.S,
         )
 
     def close(self):
