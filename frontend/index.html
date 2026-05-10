@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<title>IIoT Smart Factory Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg-2: #14171f;
+    --surface: #1a1d27;
+    --surface-2: #21252f;
+    --border: #262a36;
+    --border-strong: #353a48;
+    --text: #e6e8ee;
+    --text-dim: #9aa0ad;
+    --text-faint: #5f6675;
+    --accent: #3b82f6;
+    --arm1: #3b82f6;
+    --arm2: #f59e0b;
+    --arm3: #10b981;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --thermal: #ef4444;
+    --vibration: #f59e0b;
+    --overcurrent: #a855f7;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif; font-size: 14px;
+    -webkit-font-smoothing: antialiased; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: "tnum" 1; }
+
+  /* ---------- HEADER ---------- */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    background: linear-gradient(180deg, #14171f 0%, #11141b 100%);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-mark {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    display: grid; place-items: center;
+    color: #fff; font-weight: 700; font-size: 13px;
+    letter-spacing: -0.02em;
+  }
+  .brand h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: 0.01em; }
+  .brand .sub { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 2px; }
+
+  .header-right { display: flex; align-items: center; gap: 22px; }
+  .clock { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+  .clock .time { font-size: 16px; font-weight: 600; letter-spacing: 0.04em; }
+  .clock .date { font-size: 11px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    background: rgba(16,185,129,0.10);
+    border: 1px solid rgba(16,185,129,0.35);
+    color: var(--ok);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .status-pill.disconnected {
+    background: rgba(239,68,68,0.10);
+    border-color: rgba(239,68,68,0.35);
+    color: var(--danger);
+  }
+  .status-pill.degraded {
+    background: rgba(245,158,11,0.10);
+    border-color: rgba(245,158,11,0.35);
+    color: var(--warn);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+    animation: pulse 1.6s infinite; }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.55); }
+    70%  { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  }
+
+  /* ---------- LAYOUT ---------- */
+  main { padding: 20px 24px 40px; display: flex; flex-direction: column; gap: 20px; max-width: 1920px; margin: 0 auto; }
+
+  .section-label {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px; font-weight: 600; color: var(--text-dim);
+    letter-spacing: 0.16em; text-transform: uppercase;
+    margin: 0 0 10px 2px;
+  }
+  .section-label::before { content: ""; width: 4px; height: 4px; background: var(--accent); }
+  .section-label .count { color: var(--text-faint); font-weight: 500; }
+
+  /* ---------- ARM CARDS ---------- */
+  .arm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .arm-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--arm-color, var(--accent));
+    padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .arm-card .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .arm-id { display: flex; align-items: center; gap: 10px; }
+  .arm-swatch { width: 10px; height: 10px; background: var(--arm-color); }
+  .arm-name { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .arm-sub { font-size: 11px; color: var(--text-faint); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 9px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    border: 1px solid currentColor;
+    background: color-mix(in oklab, currentColor 12%, transparent);
+    white-space: nowrap;
+  }
+  .badge.normal      { color: var(--ok); }
+  .badge.thermal     { color: var(--thermal); }
+  .badge.vibration   { color: var(--vibration); }
+  .badge.overcurrent { color: var(--overcurrent); }
+  .badge .ind { width: 6px; height: 6px; background: currentColor; }
+
+  .arm-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .metric {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .metric .label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+  .metric .value { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .metric .unit  { font-size: 12px; color: var(--text-faint); margin-left: 3px; font-weight: 500; }
+  .metric.alert  { border-color: rgba(239,68,68,0.45); background: rgba(239,68,68,0.06); }
+  .metric.alert .value { color: var(--danger); }
+
+  .arm-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px dashed var(--border);
+    padding-top: 10px; margin-top: 2px;
+    font-size: 11px; color: var(--text-faint);
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .arm-footer .uptime { color: var(--text-dim); }
+
+  /* ---------- CHART CARDS ---------- */
+  .chart-card { background: var(--surface); border: 1px solid var(--border); padding: 16px 20px 18px; }
+  .chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .chart-title { font-size: 14px; font-weight: 600; letter-spacing: 0.01em; }
+  .chart-title .unit { color: var(--text-faint); font-weight: 500; margin-left: 6px; font-size: 12px; }
+  .chart-meta { display: flex; align-items: center; gap: 16px; font-size: 11px; color: var(--text-dim); letter-spacing: 0.06em; }
+  .chart-meta .swatch-row { display: flex; gap: 12px; }
+  .chart-meta .sw { display: inline-flex; align-items: center; gap: 6px; }
+  .chart-meta .sw i { width: 10px; height: 2px; display: inline-block; }
+  .chart-body { height: 180px; position: relative; }
+  .chart-body.tall { height: 220px; }
+
+  /* ---------- LOG TABLE ---------- */
+  .log-card { background: var(--surface); border: 1px solid var(--border); }
+  .log-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+  }
+  .log-title { font-size: 14px; font-weight: 600; }
+  .log-stats { display: flex; gap: 22px; font-size: 11px; color: var(--text-dim); letter-spacing: 0.06em; text-transform: uppercase; }
+  .log-stats b { color: var(--text); margin-left: 6px; font-weight: 600; }
+  .log-stats .danger { color: var(--danger); }
+  .log-scroll { max-height: 280px; overflow-y: auto; }
+  .log-scroll::-webkit-scrollbar { width: 8px; }
+  .log-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); }
+  .log-scroll::-webkit-scrollbar-track { background: var(--bg-2); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead th {
+    position: sticky; top: 0;
+    background: var(--bg-2);
+    text-align: left; padding: 10px 16px;
+    font-size: 10.5px; font-weight: 600; color: var(--text-dim);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody td { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody tr.anomaly { background: rgba(239,68,68,0.06); }
+  tbody tr.anomaly:hover { background: rgba(239,68,68,0.10); }
+  tbody tr.anomaly td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+  tbody td.zscore { font-weight: 600; }
+  tbody tr.anomaly td.zscore { color: var(--danger); }
+  .empty-row td { color: var(--text-faint); text-align: center; padding: 24px; font-style: italic; }
+
+  .pill-mini {
+    display: inline-block; padding: 2px 7px;
+    border: 1px solid currentColor;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  .foot {
+    margin-top: 8px; text-align: center;
+    font-size: 11px; color: var(--text-faint);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .foot .sep { margin: 0 10px; color: var(--border-strong); }
+
+  @media (max-width: 1100px) { .arm-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">II</div>
+    <div>
+      <h1>IIoT Smart Factory Monitor</h1>
+      <div class="sub">Robot Arm Telemetry · Z-Score Anomaly Detection</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="clock">
+      <span class="time mono" id="clock-time">--:--:--</span>
+      <span class="date mono" id="clock-date">—</span>
+    </div>
+    <div class="status-pill" id="conn-pill">
+      <span class="dot"></span>
+      <span id="conn-label">CONNECTING</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="section-label">Arm Status <span class="count" id="arm-count">3 units online</span></div>
+    <div class="arm-grid" id="arm-grid"></div>
+  </section>
+
+  <section>
+    <div class="section-label">Sensor Time Series <span class="count">15-minute window · 2s polling</span></div>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title">Temperature <span class="unit">°C</span></div>
+          <div class="chart-meta"><div class="swatch-row">
+            <span class="sw"><i style="background:var(--arm1)"></i>Arm 01</span>
+            <span class="sw"><i style="background:var(--arm2)"></i>Arm 02</span>
+            <span class="sw"><i style="background:var(--arm3)"></i>Arm 03</span>
+          </div></div>
+        </div>
+        <div class="chart-body"><canvas id="chart-temp"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title">Vibration <span class="unit">g</span></div>
+          <div class="chart-meta"><div class="swatch-row">
+            <span class="sw"><i style="background:var(--arm1)"></i>Arm 01</span>
+            <span class="sw"><i style="background:var(--arm2)"></i>Arm 02</span>
+            <span class="sw"><i style="background:var(--arm3)"></i>Arm 03</span>
+          </div></div>
+        </div>
+        <div class="chart-body"><canvas id="chart-vib"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title">Motor Current <span class="unit">A</span></div>
+          <div class="chart-meta"><div class="swatch-row">
+            <span class="sw"><i style="background:var(--arm1)"></i>Arm 01</span>
+            <span class="sw"><i style="background:var(--arm2)"></i>Arm 02</span>
+            <span class="sw"><i style="background:var(--arm3)"></i>Arm 03</span>
+          </div></div>
+        </div>
+        <div class="chart-body"><canvas id="chart-cur"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Anomaly Detection <span class="count">Z-score · threshold 3.0&#963;</span></div>
+    <div class="chart-card">
+      <div class="chart-head">
+        <div class="chart-title">Z-Score <span class="unit">&#963; · all arm/sensor channels</span></div>
+        <div class="chart-meta">
+          <span class="sw"><i style="background:var(--danger);height:0;border-top:1.5px dashed var(--danger);width:14px;"></i>threshold = 3.0</span>
+          <span class="sw"><i style="background:var(--danger);width:6px;height:6px;border-radius:50%;"></i>anomaly</span>
+        </div>
+      </div>
+      <div class="chart-body tall"><canvas id="chart-z"></canvas></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">Anomaly Event Log</div>
+    <div class="log-card">
+      <div class="log-head">
+        <div class="log-title">Recent Anomaly Events</div>
+        <div class="log-stats">
+          <span>TOTAL <b id="stat-total">0</b></span>
+          <span>LAST HOUR <b id="stat-hour">0</b></span>
+          <span class="danger">CRITICAL <b id="stat-crit">0</b></span>
+        </div>
+      </div>
+      <div class="log-scroll">
+        <table id="log-table">
+          <thead>
+            <tr>
+              <th style="width:18%">Timestamp</th>
+              <th style="width:12%">Arm</th>
+              <th style="width:18%">Sensor</th>
+              <th style="width:14%">Value</th>
+              <th style="width:14%">Z-Score</th>
+              <th>Fault Mode</th>
+            </tr>
+          </thead>
+          <tbody id="log-body">
+            <tr class="empty-row"><td colspan="6">Awaiting telemetry…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>API · http://localhost:8000</span>
+    <span class="sep">|</span>
+    <span>POLL · 2000ms</span>
+    <span class="sep">|</span>
+    <span>WINDOW · 15min</span>
+    <span class="sep">|</span>
+    <span id="last-update">UPDATED · —</span>
+  </div>
+</main>
+
+<script>
+window.addEventListener('error', function(e) {
+  if ((!e.filename && !e.lineno) || e.message === 'Script error.' || e.message === 'Script error') {
+    e.preventDefault(); e.stopImmediatePropagation();
+  }
+}, true);
+window.addEventListener('unhandledrejection', function(e) { e.preventDefault(); });
+</script>
+<script>
+const API_BASE   = 'http://localhost:8000';
+const POLL_MS    = 2000;
+const WINDOW_MIN = 15;
+const Z_THRESH   = 3.0;
+
+const ARMS = [
+  { id: 'arm_01', label: 'Arm 01', color: getCssVar('--arm1') },
+  { id: 'arm_02', label: 'Arm 02', color: getCssVar('--arm2') },
+  { id: 'arm_03', label: 'Arm 03', color: getCssVar('--arm3') },
+];
+const SENSORS = [
+  { id: 'temperature', label: 'Temperature', unit: '°C',  baseline: 52,   std: 2.4,  decimals: 1 },
+  { id: 'vibration',   label: 'Vibration',   unit: 'g',   baseline: 0.42, std: 0.06, decimals: 3 },
+  { id: 'current',     label: 'Current',     unit: 'A',   baseline: 14.2, std: 1.1,  decimals: 2 },
+];
+const FAULT_MODES = {
+  NORMAL:          { cls: 'normal',      text: 'NORMAL' },
+  THERMAL_DRIFT:   { cls: 'thermal',     text: 'THERMAL DRIFT' },
+  VIBRATION_SPIKE: { cls: 'vibration',   text: 'VIBRATION SPIKE' },
+  OVERCURRENT:     { cls: 'overcurrent', text: 'OVERCURRENT' },
+};
+
+function getCssVar(n) {
+  return getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+}
+
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = getCssVar('--text-dim');
+Chart.defaults.borderColor = getCssVar('--border');
+Chart.defaults.animation = false;
+
+const state = {
+  latest:    {},
+  history:   {},
+  anomalies: [],
+  connected: false,
+  usingMock: false,
+  startedAt: Date.now(),
+};
+ARMS.forEach(a => {
+  state.history[a.id] = { temperature: [], vibration: [], current: [] };
+});
+
+/* ---------- ARM CARDS ---------- */
+function buildArmCards() {
+  const grid = document.getElementById('arm-grid');
+  grid.innerHTML = ARMS.map(a => `
+    <div class="arm-card" id="card-${a.id}" style="--arm-color:${a.color}">
+      <div class="head">
+        <div class="arm-id">
+          <span class="arm-swatch"></span>
+          <div>
+            <div class="arm-name">${a.label}</div>
+            <div class="arm-sub">Node · ${a.id.toUpperCase()}</div>
+          </div>
+        </div>
+        <span class="badge normal" id="badge-${a.id}"><span class="ind"></span>NORMAL</span>
+      </div>
+      <div class="arm-metrics">
+        <div class="metric" id="m-${a.id}-temperature">
+          <span class="label">Temp</span>
+          <span><span class="value mono">--</span><span class="unit">°C</span></span>
+        </div>
+        <div class="metric" id="m-${a.id}-vibration">
+          <span class="label">Vibration</span>
+          <span><span class="value mono">--</span><span class="unit">g</span></span>
+        </div>
+        <div class="metric" id="m-${a.id}-current">
+          <span class="label">Current</span>
+          <span><span class="value mono">--</span><span class="unit">A</span></span>
+        </div>
+      </div>
+      <div class="arm-footer">
+        <span>Sample <span class="mono" id="sample-${a.id}">#0000</span></span>
+        <span class="uptime mono" id="up-${a.id}">UP 00:00:00</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateArmCard(arm) {
+  const data = state.latest[arm.id];
+  if (!data) return;
+  const fm = FAULT_MODES[data.fault_mode] || FAULT_MODES.NORMAL;
+  const badge = document.getElementById(`badge-${arm.id}`);
+  badge.className = `badge ${fm.cls}`;
+  badge.innerHTML = `<span class="ind"></span>${fm.text}`;
+
+  for (const s of SENSORS) {
+    const el = document.getElementById(`m-${arm.id}-${s.id}`);
+    const v  = data[s.id];
+    el.querySelector('.value').textContent = v == null ? '--' : v.toFixed(s.decimals);
+    const hist  = state.history[arm.id][s.id];
+    const lastZ = hist.length ? Math.abs(hist[hist.length - 1].z || 0) : 0;
+    el.classList.toggle('alert', lastZ >= Z_THRESH);
+  }
+  document.getElementById(`sample-${arm.id}`).textContent =
+    '#' + String(state.history[arm.id].temperature.length).padStart(4, '0');
+
+  const upS = Math.floor((Date.now() - state.startedAt) / 1000);
+  const hh = String(Math.floor(upS / 3600)).padStart(2, '0');
+  const mm = String(Math.floor((upS % 3600) / 60)).padStart(2, '0');
+  const ss = String(upS % 60).padStart(2, '0');
+  document.getElementById(`up-${arm.id}`).textContent = `UP ${hh}:${mm}:${ss}`;
+}
+
+/* ---------- CHARTS ---------- */
+function makeLineChart(canvasId, yLabel, yMin, yMax) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: ARMS.map(a => ({
+        label: a.label,
+        data: [],
+        borderColor: a.color,
+        backgroundColor: a.color,
+        borderWidth: 1.6,
+        pointRadius: 0,
+        pointHoverRadius: 3,
+        tension: 0.25,
+        spanGaps: true,
+      })),
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0c0e14', borderColor: getCssVar('--border-strong'),
+          borderWidth: 1, padding: 10, cornerRadius: 0,
+          titleFont: { weight: 600, size: 11 }, bodyFont: { size: 11 },
+        },
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'minute', displayFormats: { minute: 'HH:mm' } },
+          ticks: { color: getCssVar('--text-faint'), maxRotation: 0, autoSkipPadding: 24 },
+          grid: { color: getCssVar('--border'), drawTicks: false },
+          border: { color: getCssVar('--border-strong') },
+        },
+        y: {
+          min: yMin, max: yMax,
+          title: { display: true, text: yLabel, color: getCssVar('--text-faint'), font: { size: 10, weight: 500 } },
+          ticks: { color: getCssVar('--text-faint') },
+          grid: { color: getCssVar('--border'), drawTicks: false },
+          border: { color: getCssVar('--border-strong') },
+        },
+      },
+    },
+  });
+}
+
+const zThresholdPlugin = {
+  id: 'zThreshold',
+  afterDatasetsDraw(chart) {
+    const { ctx, chartArea, scales } = chart;
+    if (!chartArea) return;
+    const yPos = scales.y.getPixelForValue(Z_THRESH);
+    const yNeg = scales.y.getPixelForValue(-Z_THRESH);
+    ctx.save();
+    ctx.strokeStyle = getCssVar('--danger');
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([6, 4]);
+    [yPos, yNeg].forEach(y => {
+      ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(chartArea.right, y); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    ctx.fillStyle = getCssVar('--danger');
+    ctx.font = '600 10px JetBrains Mono, monospace';
+    ctx.fillText('THRESHOLD ±3.0σ', chartArea.right - 120, yPos - 6);
+    ctx.restore();
+  },
+};
+
+let zChart;
+function buildZChart() {
+  const ctx = document.getElementById('chart-z').getContext('2d');
+  const datasets = [];
+  ARMS.forEach(a => {
+    SENSORS.forEach(s => {
+      datasets.push({
+        label: `${a.label} · ${s.label}`,
+        data: [],
+        borderColor: a.color,
+        backgroundColor: a.color,
+        borderWidth: 1,
+        pointRadius: 0,
+        tension: 0.2,
+      });
+    });
+  });
+  datasets.push({
+    label: 'anomalies', data: [],
+    showLine: false,
+    pointRadius: 4, pointHoverRadius: 6,
+    pointBackgroundColor: getCssVar('--danger'),
+    pointBorderColor: '#fff', pointBorderWidth: 1,
+    isAnomaly: true,
+  });
+
+  zChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0c0e14', borderColor: getCssVar('--border-strong'),
+          borderWidth: 1, padding: 10, cornerRadius: 0,
+          callbacks: {
+            label: (item) => {
+              if (item.dataset.isAnomaly) {
+                const p = item.raw;
+                return `${p.arm} · ${p.sensor}  z = ${p.y.toFixed(2)}σ`;
+              }
+              return `${item.dataset.label}  ${item.parsed.y.toFixed(2)}σ`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'minute', displayFormats: { minute: 'HH:mm' } },
+          ticks: { color: getCssVar('--text-faint'), maxRotation: 0, autoSkipPadding: 24 },
+          grid: { color: getCssVar('--border'), drawTicks: false },
+          border: { color: getCssVar('--border-strong') },
+        },
+        y: {
+          min: -5, max: 5,
+          title: { display: true, text: 'Z-score (σ)', color: getCssVar('--text-faint'), font: { size: 10, weight: 500 } },
+          ticks: { color: getCssVar('--text-faint'), stepSize: 1 },
+          grid: {
+            color: (c) => c.tick.value === 0 ? getCssVar('--border-strong') : getCssVar('--border'),
+            drawTicks: false,
+          },
+          border: { color: getCssVar('--border-strong') },
+        },
+      },
+    },
+    plugins: [zThresholdPlugin],
+  });
+}
+
+function refreshCharts() {
+  const cutoff = Date.now() - WINDOW_MIN * 60 * 1000;
+
+  [['chart-temp', 'temperature'], ['chart-vib', 'vibration'], ['chart-cur', 'current']].forEach(([id, sensor]) => {
+    const ch = window['_' + id];
+    ch.data.datasets.forEach((ds, i) => {
+      const series = state.history[ARMS[i].id][sensor].filter(p => p.t >= cutoff);
+      ds.data = series.map(p => ({ x: p.t, y: p.v }));
+    });
+    ch.update('none');
+  });
+
+  let dsi = 0;
+  ARMS.forEach(a => {
+    SENSORS.forEach(s => {
+      const series = state.history[a.id][s.id].filter(p => p.t >= cutoff);
+      zChart.data.datasets[dsi].data = series.map(p => ({ x: p.t, y: p.z }));
+      dsi++;
+    });
+  });
+  const anomDots = [];
+  ARMS.forEach(a => {
+    SENSORS.forEach(s => {
+      state.history[a.id][s.id].forEach(p => {
+        if (p.t >= cutoff && Math.abs(p.z) >= Z_THRESH) {
+          anomDots.push({ x: p.t, y: p.z, arm: a.label, sensor: s.label });
+        }
+      });
+    });
+  });
+  zChart.data.datasets[zChart.data.datasets.length - 1].data = anomDots;
+  zChart.update('none');
+}
+
+/* ---------- LOG ---------- */
+function renderLog() {
+  const tbody = document.getElementById('log-body');
+  if (!state.anomalies.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">No anomalies detected — system nominal.</td></tr>`;
+  } else {
+    const rows = [...state.anomalies].sort((a, b) => b.ts - a.ts).slice(0, 200);
+    tbody.innerHTML = rows.map(r => {
+      const isAnom = Math.abs(r.z) >= Z_THRESH;
+      const fm = FAULT_MODES[r.fault_mode] || FAULT_MODES.NORMAL;
+      const armDef = ARMS.find(a => a.id === r.arm) || { label: r.arm, color: '#888' };
+      const sDef  = SENSORS.find(s => s.id === r.sensor) || { label: r.sensor, unit: '', decimals: 2 };
+      const ts = new Date(r.ts);
+      const fmColor = fm.cls === 'normal' ? 'ok' : fm.cls;
+      return `<tr class="${isAnom ? 'anomaly' : ''}">
+        <td class="mono">${pad(ts.getHours())}:${pad(ts.getMinutes())}:${pad(ts.getSeconds())}.${String(ts.getMilliseconds()).padStart(3,'0')}</td>
+        <td><span style="display:inline-flex;align-items:center;gap:8px;">
+          <span style="width:8px;height:8px;background:${armDef.color}"></span>${armDef.label}
+        </span></td>
+        <td>${sDef.label} <span style="color:var(--text-faint)">(${sDef.unit})</span></td>
+        <td class="mono">${r.value.toFixed(sDef.decimals)}</td>
+        <td class="mono zscore">${r.z >= 0 ? '+' : ''}${r.z.toFixed(2)}σ</td>
+        <td><span class="pill-mini" style="color:var(--${fmColor})">${fm.text}</span></td>
+      </tr>`;
+    }).join('');
+  }
+  const total    = state.anomalies.length;
+  const hourAgo  = Date.now() - 3600 * 1000;
+  const lastHour = state.anomalies.filter(r => r.ts >= hourAgo).length;
+  const crit     = state.anomalies.filter(r => Math.abs(r.z) >= 4).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-hour').textContent  = lastHour;
+  document.getElementById('stat-crit').textContent  = crit;
+}
+
+/* ---------- TIME ---------- */
+function pad(n) { return String(n).padStart(2, '0'); }
+function formatTime(d) { return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+function tickClock() {
+  const d = new Date();
+  document.getElementById('clock-time').textContent = formatTime(d);
+  document.getElementById('clock-date').textContent =
+    d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function setConnection(s) {
+  const pill = document.getElementById('conn-pill');
+  const lbl  = document.getElementById('conn-label');
+  pill.classList.remove('disconnected', 'degraded');
+  if (s === 'live')         { lbl.textContent = 'CONNECTED · LIVE API'; }
+  else if (s === 'mock')    { pill.classList.add('degraded');      lbl.textContent = 'CONNECTED · SIM FEED'; }
+  else                      { pill.classList.add('disconnected'); lbl.textContent = 'DISCONNECTED'; }
+}
+
+/* ===== SIMULATOR FALLBACK ===== */
+const sim = {
+  windows: {}, faults: {},
+  init() {
+    ARMS.forEach(a => {
+      this.windows[a.id] = {};
+      SENSORS.forEach(s => { this.windows[a.id][s.id] = []; });
+      this.faults[a.id] = { mode: 'NORMAL', until: 0 };
+    });
+    const now = Date.now();
+    const samples = (WINDOW_MIN * 60) / (POLL_MS / 1000);
+    for (let i = samples; i >= 1; i--) { this.tick(now - i * POLL_MS); }
+  },
+  noise(std) {
+    const u = Math.random() || 1e-9, v = Math.random() || 1e-9;
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * std;
+  },
+  zscore(win, value) {
+    if (win.length < 10) return 0;
+    const mean = win.reduce((a, b) => a + b, 0) / win.length;
+    const sd   = Math.sqrt(win.reduce((a, b) => a + (b - mean) ** 2, 0) / win.length) || 1e-6;
+    return (value - mean) / sd;
+  },
+  maybeInjectFault(arm, t) {
+    const f = this.faults[arm.id];
+    if (t < f.until) return f.mode;
+    if (Math.random() < 0.004) {
+      f.mode  = ['THERMAL_DRIFT','VIBRATION_SPIKE','OVERCURRENT'][Math.floor(Math.random() * 3)];
+      f.until = t + (8 + Math.random() * 14) * 1000;
+    } else { f.mode = 'NORMAL'; }
+    return f.mode;
+  },
+  tick(t) {
+    ARMS.forEach(arm => {
+      const fault = this.maybeInjectFault(arm, t);
+      const reading = {};
+      SENSORS.forEach(s => {
+        let v = s.baseline + this.noise(s.std) + (ARMS.indexOf(arm) - 1) * s.std * 0.6;
+        if (fault === 'THERMAL_DRIFT'    && s.id === 'temperature') v += 6 + Math.random() * 4;
+        if (fault === 'VIBRATION_SPIKE'  && s.id === 'vibration')   v += 0.18 + Math.random() * 0.10;
+        if (fault === 'OVERCURRENT'      && s.id === 'current')     v += 4 + Math.random() * 2.5;
+        reading[s.id] = v;
+      });
+      reading.fault_mode = fault;
+
+      SENSORS.forEach(s => {
+        const w = this.windows[arm.id][s.id];
+        const z = this.zscore(w, reading[s.id]);
+        reading[s.id + '_z'] = z;
+        w.push(reading[s.id]);
+        if (w.length > 90) w.shift();
+        state.history[arm.id][s.id].push({ t, v: reading[s.id], z });
+        const cutoff = t - (WINDOW_MIN + 1) * 60 * 1000;
+        while (state.history[arm.id][s.id].length && state.history[arm.id][s.id][0].t < cutoff) {
+          state.history[arm.id][s.id].shift();
+        }
+        if (Math.abs(z) >= Z_THRESH) {
+          state.anomalies.push({ ts: t, arm: arm.id, sensor: s.id, value: reading[s.id], z, fault_mode: fault });
+        }
+      });
+      state.latest[arm.id] = {
+        ts: t, temperature: reading.temperature, vibration: reading.vibration,
+        current: reading.current, fault_mode: fault,
+      };
+    });
+    if (state.anomalies.length > 500) state.anomalies = state.anomalies.slice(-500);
+  },
+};
+
+/* ===== API FETCH ===== */
+async function fetchWithTimeout(url, ms = 1500) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(id);
+    if (!r.ok) throw new Error('status ' + r.status);
+    return r.json();
+  } finally { clearTimeout(id); }
+}
+
+async function pollLive() {
+  try {
+    const results = await Promise.allSettled([
+      fetchWithTimeout(`${API_BASE}/api/sensors/latest`),
+      fetchWithTimeout(`${API_BASE}/api/sensors/history?minutes=${WINDOW_MIN}`),
+      fetchWithTimeout(`${API_BASE}/api/anomalies`),
+    ]);
+    if (results.some(r => r.status === 'rejected')) throw new Error('api offline');
+    const [latest, history, anomalies] = results.map(r => r.value);
+
+    const latestMap = Array.isArray(latest)
+      ? Object.fromEntries(latest.map(r => [r.arm_id, r]))
+      : latest;
+    Object.assign(state.latest, latestMap);
+
+    if (history && typeof history === 'object') {
+      ARMS.forEach(a => {
+        if (history[a.id]) {
+          SENSORS.forEach(s => {
+            if (Array.isArray(history[a.id][s.id])) {
+              state.history[a.id][s.id] = history[a.id][s.id];
+            }
+          });
+        }
+      });
+    }
+    if (Array.isArray(anomalies)) state.anomalies = anomalies;
+    state.usingMock = false;
+    setConnection('live');
+    return true;
+  } catch (_) { return false; }
+}
+
+async function tick() {
+  let ok = false;
+  if (!state.usingMock) ok = await pollLive();
+  if (!ok) {
+    if (!state.usingMock) { sim.init(); state.usingMock = true; }
+    sim.tick(Date.now());
+    setConnection('mock');
+  }
+  ARMS.forEach(updateArmCard);
+  refreshCharts();
+  renderLog();
+  document.getElementById('last-update').textContent = 'UPDATED · ' + formatTime(new Date());
+}
+
+function boot() {
+  buildArmCards();
+  window['_chart-temp'] = makeLineChart('chart-temp', '°C', 35, 110);
+  window['_chart-vib']  = makeLineChart('chart-vib',  'g',  0.0, 5.0);
+  window['_chart-cur']  = makeLineChart('chart-cur',  'A',  0.0, 25.0);
+  buildZChart();
+  tickClock();
+  setInterval(tickClock, 1000);
+  tick();
+  setInterval(tick, POLL_MS);
+}
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
