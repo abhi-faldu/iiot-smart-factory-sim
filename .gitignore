@@ -232,3 +232,8 @@ broker/log/
 
 # Claude Code
 CLAUDE.md
+
+# Demo video output
+demo/output/
+demo/node_modules/
+demo/package-lock.json
