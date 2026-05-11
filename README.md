@@ -157,12 +157,12 @@ cd iiot-smart-factory-sim
 docker compose up --build
 ```
 
-| Service | URL | Credentials |
-|---|---|---|
-| Custom dashboard | http://localhost:8000 | — |
-| Grafana | http://localhost:3000 | admin / admin |
-| InfluxDB | http://localhost:8086 | admin / adminpass |
-| FastAPI docs | http://localhost:8000/docs | — |
+| Service | URL |
+|---|---|
+| Custom dashboard | http://localhost:8000 |
+| Grafana | http://localhost:3000 |
+| InfluxDB | http://localhost:8086 |
+| FastAPI docs | http://localhost:8000/docs |
 
 > Data starts flowing within 5–10 seconds. Fault events appear within ~60–180 seconds.
 
