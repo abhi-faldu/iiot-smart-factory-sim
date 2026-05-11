@@ -189,6 +189,29 @@ tbody tr.anomaly td.zscore{color:var(--danger)}
 .foot-dot{width:6px;height:6px;border-radius:50%;margin-right:6px}
 
 @media(max-width:1100px){.arm-grid{grid-template-columns:1fr}}
+
+/* ── KPI BAR ── */
+.kpi-bar{display:flex;background:var(--bg-2);border-bottom:1px solid var(--border)}
+.kpi{flex:1;padding:10px 24px;display:flex;align-items:center;gap:14px;border-right:1px solid var(--border)}
+.kpi:last-child{border-right:none}
+.kpi .kpi-icon{font-size:20px;opacity:.5;font-family:'JetBrains Mono',monospace;font-weight:700}
+.kpi .kpi-val{font-size:22px;font-weight:700;letter-spacing:-.02em;font-family:'JetBrains Mono',monospace;line-height:1}
+.kpi .kpi-lbl{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.12em;margin-top:3px}
+.kpi.danger .kpi-val{color:var(--danger)}
+.kpi.warn .kpi-val{color:var(--warn)}
+/* ── FAULT DURATION ── */
+.fault-dur{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-top:4px;min-height:13px}
+.fault-dur.active{color:var(--warn)}
+/* ── DELTA ── */
+.metric .delta{font-size:10px;letter-spacing:.03em;margin-top:1px;line-height:1.2;font-family:'JetBrains Mono',monospace}
+.metric .delta.up{color:var(--danger)}.metric .delta.dn{color:var(--ok)}.metric .delta.flat{color:var(--text-faint)}
+/* ── ACK ── */
+.ack-btn{background:none;border:1px solid var(--border);color:var(--text-faint);font-size:9px;
+  font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;cursor:pointer;transition:all .15s}
+.ack-btn:hover{border-color:var(--ok);color:var(--ok)}
+tr.acked td{opacity:.38}
+.status-badge{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 6px;border:1px solid currentColor}
 </style>
 </head>
 <body>
@@ -219,6 +242,22 @@ tbody tr.anomaly td.zscore{color:var(--danger)}
     </div>
   </div>
 </header>
+
+<!-- KPI BAR -->
+<div class="kpi-bar">
+  <div class="kpi" id="kpi-faults">
+    <div class="kpi-icon">⚠</div>
+    <div><div class="kpi-val" id="kpi-faults-val">0</div><div class="kpi-lbl">Arms in Fault</div></div>
+  </div>
+  <div class="kpi" id="kpi-anom">
+    <div class="kpi-icon">◈</div>
+    <div><div class="kpi-val" id="kpi-anom-val">0</div><div class="kpi-lbl">Anomalies / hr</div></div>
+  </div>
+  <div class="kpi" id="kpi-z">
+    <div class="kpi-icon">σ</div>
+    <div><div class="kpi-val mono" id="kpi-z-val">0.00σ</div><div class="kpi-lbl">Worst Z-Score</div></div>
+  </div>
+</div>
 
 <main>
   <!-- ARM STATUS -->
@@ -319,11 +358,12 @@ tbody tr.anomaly td.zscore{color:var(--danger)}
       </div>
       <div class="log-scroll">
         <table><thead><tr>
-          <th style="width:18%">Timestamp</th><th style="width:12%">Arm</th>
-          <th style="width:18%">Sensor</th><th style="width:14%">Value</th>
-          <th style="width:14%">Z-Score</th><th>Fault Mode</th>
+          <th style="width:16%">Timestamp</th><th style="width:11%">Arm</th>
+          <th style="width:16%">Sensor</th><th style="width:12%">Value</th>
+          <th style="width:12%">Z-Score</th><th style="width:16%">Fault Mode</th>
+          <th>Status</th>
         </tr></thead><tbody id="log-body">
-          <tr class="empty-row"><td colspan="6">Awaiting telemetry…</td></tr>
+          <tr class="empty-row"><td colspan="7">Awaiting telemetry…</td></tr>
         </tbody></table>
       </div>
     </div>
@@ -394,6 +434,8 @@ const state={
   activeArms:new Set(['arm_01','arm_02','arm_03']),
   logFilter:'all',
   lastAnomalyCount:0,
+  faultSince:{},
+  acked:new Set(),
 };
 ARMS.forEach(a=>{state.history[a.id]={temperature:[],vibration:[],current:[]}});
 
@@ -406,13 +448,17 @@ function buildArmCards(){
           <div class="arm-name">${a.label}</div>
           <div class="arm-sub">Node · ${a.id.toUpperCase()}</div>
         </div></div>
-        <span class="badge normal" id="badge-${a.id}"><span class="ind"></span>NORMAL</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+          <span class="badge normal" id="badge-${a.id}"><span class="ind"></span>NORMAL</span>
+          <div class="fault-dur" id="fdur-${a.id}"></div>
+        </div>
       </div>
       <div class="arm-metrics">
         ${SENSORS.map(s=>`<div class="metric" id="m-${a.id}-${s.id}" onclick="openMetricModal('${a.id}','${s.id}')">
           <span class="hint">details</span>
           <span class="label">${s.label}</span>
           <span><span class="value mono">--</span><span class="unit">${s.unit}</span></span>
+          <span class="delta flat" id="d-${a.id}-${s.id}"></span>
         </div>`).join('')}
       </div>
       <div class="arm-footer">
@@ -428,6 +474,18 @@ function updateArmCard(arm){
   const badge=document.getElementById(`badge-${arm.id}`);
   badge.className=`badge ${fm.cls}`;
   badge.innerHTML=`<span class="ind"></span>${fm.text}`;
+  // fault duration tracking
+  const fdur=document.getElementById(`fdur-${arm.id}`);
+  if(d.fault_mode&&d.fault_mode!=='NORMAL'){
+    if(!state.faultSince[arm.id]) state.faultSince[arm.id]=Date.now();
+    const sec=Math.floor((Date.now()-state.faultSince[arm.id])/1000);
+    const mm=Math.floor(sec/60),ss=sec%60;
+    fdur.textContent=`${fm.text} · ${mm}m ${String(ss).padStart(2,'0')}s`;
+    fdur.className='fault-dur active';
+  } else {
+    state.faultSince[arm.id]=null;
+    fdur.textContent='';fdur.className='fault-dur';
+  }
   for(const s of SENSORS){
     const el=document.getElementById(`m-${arm.id}-${s.id}`);
     const v=d[s.id];
@@ -435,6 +493,17 @@ function updateArmCard(arm){
     const hist=state.history[arm.id][s.id];
     const lastZ=hist.length?Math.abs(hist[hist.length-1].z||0):0;
     el.classList.toggle('alert',lastZ>=Z_THRESH);
+    // rate-of-change delta
+    const del=document.getElementById(`d-${arm.id}-${s.id}`);
+    if(hist.length>=2){
+      const a=hist[hist.length-2],b=hist[hist.length-1];
+      const dt=(b.t-a.t)/1000||1;
+      const rate=(b.v-a.v)/dt*60;
+      const abs=Math.abs(rate);
+      const sign=rate>=0?'+':'−';
+      del.textContent=abs<0.01?'stable':`${sign}${abs.toFixed(s.decimals)} ${s.unit}/min`;
+      del.className=`delta ${abs<0.05?'flat':rate>0?'up':'dn'}`;
+    } else { del.textContent=''; }
   }
   document.getElementById(`sample-${arm.id}`).textContent='#'+String(state.history[arm.id].temperature.length).padStart(4,'0');
   const upS=Math.floor((Date.now()-state.startedAt)/1000);
@@ -559,7 +628,7 @@ function buildZChart(){
         x:{type:'time',time:{unit:'minute',displayFormats:{minute:'HH:mm'}},
           ticks:{color:cv('--text-faint'),maxRotation:0,autoSkipPadding:24},
           grid:{color:cv('--border'),drawTicks:false},border:{color:cv('--border-strong')}},
-        y:{min:-5,max:5,title:{display:true,text:'Z-score (σ)',color:cv('--text-faint'),font:{size:10,weight:500}},
+        y:{suggestedMin:-5,suggestedMax:5,title:{display:true,text:'Z-score (σ)',color:cv('--text-faint'),font:{size:10,weight:500}},
           ticks:{color:cv('--text-faint'),stepSize:1},
           grid:{color:c=>c.tick.value===0?cv('--border-strong'):cv('--border'),drawTicks:false},
           border:{color:cv('--border-strong')}}
@@ -621,7 +690,7 @@ function renderLog(){
   if(f==='faults') rows=rows.filter(r=>r.fault_mode!=='NORMAL');
   else if(f!=='all') rows=rows.filter(r=>r.arm===f);
   if(!rows.length){
-    tbody.innerHTML=`<tr class="empty-row"><td colspan="6">${f==='all'?'No anomalies detected — system nominal.':'No matching events.'}</td></tr>`;
+    tbody.innerHTML=`<tr class="empty-row"><td colspan="7">${f==='all'?'No anomalies detected — system nominal.':'No matching events.'}</td></tr>`;
   } else {
     tbody.innerHTML=rows.map(r=>{
       const isA=Math.abs(r.z)>=Z_THRESH;
@@ -630,14 +699,25 @@ function renderLog(){
       const sen=SENSORS.find(s=>s.id===r.sensor)||{label:r.sensor,unit:'',decimals:2};
       const ts=new Date(r.ts);
       const fmColor=fm.cls==='normal'?'ok':fm.cls;
-      return `<tr class="${isA?'anomaly':''}">
+      const ackKey=`${r.ts}-${r.arm}-${r.sensor}`;
+      const isAcked=state.acked.has(ackKey);
+      const curFault=state.latest[r.arm]?.fault_mode||'NORMAL';
+      const isActive=!isAcked&&r.fault_mode!=='NORMAL'&&curFault===r.fault_mode;
+      const statusHtml=isAcked
+        ?`<span class="status-badge" style="color:var(--text-faint)">ACK</span>`
+        :isActive
+          ?`<span class="status-badge" style="color:var(--danger)">ACTIVE</span>
+            <button class="ack-btn" style="margin-left:6px" onclick="ackEvent('${ackKey}')">ACK</button>`
+          :`<span class="status-badge" style="color:var(--ok)">RESOLVED</span>`;
+      return `<tr class="${isA?'anomaly':''}${isAcked?' acked':''}">
         <td class="mono">${pad(ts.getHours())}:${pad(ts.getMinutes())}:${pad(ts.getSeconds())}.${String(ts.getMilliseconds()).padStart(3,'0').slice(0,3)}</td>
         <td><span style="display:inline-flex;align-items:center;gap:8px">
           <span style="width:8px;height:8px;background:${arm.color}"></span>${arm.label}</span></td>
         <td>${sen.label} <span style="color:var(--text-faint)">(${sen.unit})</span></td>
         <td class="mono">${r.value.toFixed(sen.decimals)}</td>
         <td class="mono zscore">${r.z>=0?'+':''}${r.z.toFixed(2)}σ</td>
-        <td><span class="pill-mini" style="color:var(--${fmColor})">${fm.text}</span></td></tr>`;
+        <td><span class="pill-mini" style="color:var(--${fmColor})">${fm.text}</span></td>
+        <td>${statusHtml}</td></tr>`;
     }).join('');
   }
   const hourAgo=Date.now()-3600000;
@@ -703,6 +783,30 @@ function setConnection(s){
     document.getElementById('foot-api').textContent='Factory API · Offline';
   }
 }
+
+/* ── KPI BAR UPDATE ── */
+function updateKPIBar(){
+  const faultArms=ARMS.filter(a=>state.latest[a.id]?.fault_mode&&state.latest[a.id].fault_mode!=='NORMAL').length;
+  const hourAgo=Date.now()-3600000;
+  const anomHr=state.anomalies.filter(r=>r.ts>=hourAgo).length;
+  let worstZ=0;
+  ARMS.forEach(a=>SENSORS.forEach(s=>{
+    const h=state.history[a.id][s.id];
+    if(h.length) worstZ=Math.max(worstZ,Math.abs(h[h.length-1].z||0));
+  }));
+  const fEl=document.getElementById('kpi-faults');
+  const aEl=document.getElementById('kpi-anom');
+  const zEl=document.getElementById('kpi-z');
+  document.getElementById('kpi-faults-val').textContent=faultArms;
+  fEl.className=`kpi${faultArms>0?' danger':''}`;
+  document.getElementById('kpi-anom-val').textContent=anomHr;
+  aEl.className=`kpi${anomHr>10?' warn':''}`;
+  document.getElementById('kpi-z-val').textContent=worstZ.toFixed(2)+'σ';
+  zEl.className=`kpi${worstZ>=Z_THRESH?' danger':worstZ>=2?' warn':''}`;
+}
+
+/* ── ACK EVENT ── */
+function ackEvent(key){state.acked.add(key);renderLog()}
 
 /* ================================================================
    SIMULATOR — Box-Muller noise, fault injection, rolling Z-score.
@@ -794,6 +898,7 @@ async function tick(){
   ARMS.forEach(updateArmCard);
   refreshCharts();
   renderLog();
+  updateKPIBar();
   document.getElementById('last-update').textContent='UPDATED · '+fmtTime(new Date());
 }
 
