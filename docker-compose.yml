@@ -25,6 +25,11 @@ services:
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: factory-token
     volumes:
       - influxdb_data:/var/lib/influxdb2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
 
   simulator:
@@ -44,6 +49,23 @@ services:
     depends_on:
       - mosquitto
       - influxdb
+    environment:
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: factory-token
+      INFLUX_ORG: factory
+      INFLUX_BUCKET: sensors
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: api
+    ports:
+      - "8000:8000"
+    depends_on:
+      influxdb:
+        condition: service_healthy
     environment:
       INFLUX_URL: http://influxdb:8086
       INFLUX_TOKEN: factory-token
