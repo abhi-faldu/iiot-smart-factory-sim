@@ -76,27 +76,7 @@ iiot-smart-factory-sim/
 
 ## 🔌 Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Docker Compose Stack                        │
-│                                                                     │
-│  ┌─────────────┐   MQTT    ┌──────────────┐   HTTP    ┌──────────┐ │
-│  │  Simulator  │ ────────► │  Mosquitto   │ ◄──────── │ Detector │ │
-│  │  3 arms     │  pub/sub  │  Broker      │   sub     │ Z-score  │ │
-│  │  9 channels │           │  port 1883   │           │ detector │ │
-│  └─────────────┘           └──────────────┘           └────┬─────┘ │
-│                                                             │ write │
-│  ┌─────────────┐   REST    ┌──────────────┐   Flux    ┌────▼─────┐ │
-│  │  Browser    │ ◄──────── │  FastAPI     │ ◄──────── │ InfluxDB │ │
-│  │  Dashboard  │  JSON     │  :8000       │  query    │  :8086   │ │
-│  └─────────────┘           └──────────────┘           └────┬─────┘ │
-│                                                             │ query │
-│                             ┌──────────────┐               │       │
-│                             │   Grafana    │ ◄─────────────┘       │
-│                             │   :3000      │                        │
-│                             └──────────────┘                        │
-└─────────────────────────────────────────────────────────────────────┘
-```
+![Architecture](findings/architecture_readme.png)
 
 ### Services
 
