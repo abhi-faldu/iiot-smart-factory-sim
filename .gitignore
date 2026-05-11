@@ -229,3 +229,6 @@ broker/log/
 
 # VS Code
 .vscode/
+
+# Claude Code
+CLAUDE.md
