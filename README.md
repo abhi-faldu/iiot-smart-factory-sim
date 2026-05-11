@@ -1,4 +1,4 @@
-<div align="center">
+<div style="text-align:center">
 
 # ⚙️ iiot-smart-factory-sim
 
@@ -19,7 +19,7 @@
 
 ---
 
-## 🏭 Problem
+## Problem 🏭
 
 Modern automotive plants run hundreds of robotic arms continuously. Sensor data from each arm — temperature, vibration, motor current — streams at high frequency. A single undetected fault that escalates into mechanical failure can halt an entire assembly line, costing **€500,000+ per hour** in downtime.
 
@@ -27,7 +27,7 @@ This project simulates that IIoT environment end-to-end: three robotic arms publ
 
 ---
 
-## 🎯 What This Project Does
+## What This Project Does 🎯
 
 | Step | Description |
 |------|-------------|
@@ -41,9 +41,9 @@ This project simulates that IIoT environment end-to-end: three robotic arms publ
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure 🗂️
 
-```
+```text
 iiot-smart-factory-sim/
 ├── broker/
 │   └── mosquitto.conf              ← Mosquitto MQTT broker config (anon, persistent)
@@ -74,9 +74,9 @@ iiot-smart-factory-sim/
 
 ---
 
-## 🔌 Architecture
+## Architecture 🔌
 
-![Architecture](findings/architecture_readme.png)
+![Architecture diagram: Docker Compose stack with six services. Simulator (3 arms, 9 channels) publishes via MQTT pub/sub to Mosquitto Broker on port 1883. Detector subscribes over HTTP, runs Z-score anomaly detection, and writes results to InfluxDB on port 8086. FastAPI on port 8000 queries InfluxDB via Flux and serves a Browser Dashboard over REST/JSON. Grafana on port 3000 also queries InfluxDB directly.](findings/architecture_readme.png)
 
 ### Services
 
@@ -91,7 +91,7 @@ iiot-smart-factory-sim/
 
 ---
 
-## 📡 Sensor Configuration
+## Sensor Configuration 📡
 
 Three robot arms (`arm_01`, `arm_02`, `arm_03`), each publishing three sensors every second to `factory/robot/<arm_id>/<sensor>`:
 
@@ -115,11 +115,11 @@ Three robot arms (`arm_01`, `arm_02`, `arm_03`), each publishing three sensors e
 
 ---
 
-## 🧠 Anomaly Detection
+## Anomaly Detection 🧠
 
 ### Z-Score Sliding Window
 
-```
+```text
 For each (arm_id, sensor) pair:
 
   window  =  last 30 readings  [ring buffer]
@@ -147,7 +147,7 @@ Faults last 20–60 cycles (~20–60 seconds), then the arm returns to normal. T
 
 ---
 
-## 🚀 Quickstart
+## Quickstart 🚀
 
 ### Option A — Full Docker Stack (recommended)
 
@@ -213,7 +213,7 @@ Dataset column mapping:
 
 ---
 
-## 🌐 API Usage
+## API Usage 🌐
 
 ```bash
 # Latest reading for all arms
@@ -256,7 +256,7 @@ curl http://localhost:8000/health
 
 ---
 
-## 📊 Dashboard
+## Dashboard 📊
 
 ### Custom Web Dashboard (http://localhost:8000)
 
@@ -282,7 +282,7 @@ Pre-provisioned at startup via `grafana/provisioning/`. No manual setup required
 
 ---
 
-## 🐳 Docker
+## Docker 🐳
 
 ```bash
 # Full stack
@@ -302,7 +302,7 @@ docker compose down -v   # also removes data volumes
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack 🛠️
 
 | Layer | Technology |
 |---|---|
@@ -317,7 +317,7 @@ docker compose down -v   # also removes data volumes
 
 ---
 
-## ✅ What's Built
+## What's Built ✅
 
 - [x] MQTT simulator — 3 robot arms × 3 sensors × 1s publish interval
 - [x] Fault injection engine — thermal drift, vibration spike, overcurrent
