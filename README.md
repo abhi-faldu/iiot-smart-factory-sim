@@ -1,6 +1,6 @@
 <div style="text-align:center">
 
-# ⚙️ iiot-smart-factory-sim
+<h1 align="center">⚙️ iiot-smart-factory-sim</h1>
 
 **End-to-end Industry 4.0 IIoT simulator for real-time sensor monitoring and anomaly detection**  
 **using MQTT, Z-score detection, InfluxDB, and a live Grafana + custom web dashboard**
