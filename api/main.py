@@ -1,15 +1,25 @@
 import os
+import sys
 from pathlib import Path
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from influxdb_client import InfluxDBClient
+from starlette.middleware.base import BaseHTTPMiddleware
 
 INFLUX_URL    = os.getenv("INFLUX_URL",    "http://localhost:8086")
-INFLUX_TOKEN  = os.getenv("INFLUX_TOKEN",  "factory-token")
+INFLUX_TOKEN  = os.getenv("INFLUX_TOKEN")
 INFLUX_ORG    = os.getenv("INFLUX_ORG",    "factory")
 INFLUX_BUCKET = os.getenv("INFLUX_BUCKET", "sensors")
+
+if not INFLUX_TOKEN:
+    print("[api] INFLUX_TOKEN env var is required", file=sys.stderr)
+    sys.exit(1)
+
+# Comma-separated allowed origins; default covers local dev only
+_raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:8080,http://localhost:3000")
+CORS_ORIGINS  = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
 ARM_IDS = ["arm_01", "arm_02", "arm_03"]
 SENSORS = ["temperature", "vibration", "current"]
@@ -17,9 +27,22 @@ SENSORS = ["temperature", "vibration", "current"]
 FRONTEND = Path(__file__).parent.parent / "frontend" / "index.html"
 
 app = FastAPI(title="IIoT Smart Factory API")
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["GET"],
     allow_headers=["*"],
 )
