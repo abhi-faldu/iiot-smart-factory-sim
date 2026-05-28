@@ -2,6 +2,7 @@ import json
 import os
 import signal
 import sys
+import time
 
 import paho.mqtt.client as mqtt
 
@@ -18,10 +19,29 @@ writer = InfluxWriter()
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
+        # Re-subscribe on every (re)connect so a dropped link recovers cleanly.
         client.subscribe(SUBSCRIBE_TOPIC, qos=1)
         print(f"[detector] subscribed to {SUBSCRIBE_TOPIC}")
     else:
         print(f"[detector] connection failed rc={rc}")
+
+
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print(f"[detector] unexpected disconnect rc={rc}; auto-reconnecting")
+
+
+def _connect_with_retry(client):
+    """Block until the broker accepts a connection, backing off between tries."""
+    delay = 1
+    while True:
+        try:
+            client.connect(BROKER_HOST, BROKER_PORT, keepalive=60)
+            return
+        except OSError as exc:
+            print(f"[detector] broker unavailable ({exc}); retrying in {delay}s")
+            time.sleep(delay)
+            delay = min(delay * 2, 30)
 
 
 def on_message(client, userdata, msg):
@@ -69,10 +89,12 @@ def main():
 
     client = mqtt.Client(client_id="factory-detector")
     client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
     client.on_message = on_message
-    client.connect(BROKER_HOST, BROKER_PORT, keepalive=60)
+    client.reconnect_delay_set(min_delay=1, max_delay=30)
 
     print(f"[detector] connecting to {BROKER_HOST}:{BROKER_PORT}")
+    _connect_with_retry(client)
     client.loop_forever()
 
 
