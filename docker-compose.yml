@@ -39,6 +39,8 @@ services:
     container_name: simulator
     depends_on:
       - mosquitto
+    environment:
+      BROKER_HOST: mosquitto
     restart: unless-stopped
 
   detector:
@@ -50,6 +52,7 @@ services:
       - mosquitto
       - influxdb
     environment:
+      BROKER_HOST: mosquitto
       INFLUX_URL: http://influxdb:8086
       INFLUX_TOKEN: ${INFLUX_TOKEN}
       INFLUX_ORG: ${INFLUX_ORG}
