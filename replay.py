@@ -14,13 +14,14 @@ Usage:
 import argparse
 import csv
 import json
+import os
 import time
 from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
 
-BROKER_HOST = "localhost"
-BROKER_PORT = 1883
+BROKER_HOST = os.getenv("BROKER_HOST", "localhost")
+BROKER_PORT = int(os.getenv("BROKER_PORT", "1883"))
 TOPIC_TEMPLATE = "factory/robot/{arm_id}/{sensor}"
 
 # AI4I product type → robot arm
