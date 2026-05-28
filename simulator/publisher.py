@@ -10,7 +10,8 @@ from config import (
     BROKER_HOST,
     BROKER_PORT,
     PUBLISH_INTERVAL,
-    SENSOR_RANGES,
+    SENSOR_BASELINES,
+    SENSOR_NOISE_STD,
     SENSORS,
     TOPIC_TEMPLATE,
 )
@@ -18,12 +19,11 @@ from degradation import DegradationEngine
 
 
 def _base_value(sensor: str) -> float:
-    r = SENSOR_RANGES[sensor]
-    return random.uniform(r["min"], r["max"])
+    return SENSOR_BASELINES[sensor]
 
 
-def _add_noise(value: float) -> float:
-    return value + random.gauss(0, 0.05 * value)
+def _add_noise(sensor: str, value: float) -> float:
+    return value + random.gauss(0, SENSOR_NOISE_STD[sensor])
 
 
 def main():
@@ -45,7 +45,7 @@ def main():
             for sensor in SENSORS:
                 raw = _base_value(sensor)
                 degraded = engine.apply(sensor, raw)
-                value = round(_add_noise(degraded), 4)
+                value = round(_add_noise(sensor, degraded), 4)
 
                 topic = TOPIC_TEMPLATE.format(arm_id=arm_id, sensor=sensor)
                 payload = json.dumps({
