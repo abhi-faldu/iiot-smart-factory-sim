@@ -232,8 +232,20 @@ broker/log/
 
 # Claude Code
 CLAUDE.md
+.claude/
 
 # Demo video output
 demo/output/
 demo/node_modules/
 demo/package-lock.json
+
+# graphify skill output
+graphify-out/
+
+# Replay dataset (download from Kaggle, see README/CLAUDE.md)
+data/
+
+# Findings media — keep only the architecture diagram used in the README
+findings/*.png
+!findings/architecture_readme.png
+findings/*.mp4
