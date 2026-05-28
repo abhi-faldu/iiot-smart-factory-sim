@@ -32,7 +32,9 @@ class ZScoreDetector:
 
         arr = np.array(window)
         mean = float(np.mean(arr))
-        std = float(np.std(arr))
+        # Sample standard deviation (ddof=1): the window is a sample of the
+        # sensor's behaviour, not the whole population.
+        std = float(np.std(arr, ddof=1))
 
         if std < 1e-6:
             z_score = 0.0
