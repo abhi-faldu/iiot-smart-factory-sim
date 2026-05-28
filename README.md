@@ -315,18 +315,3 @@ docker compose down -v   # also removes data volumes
 | Containerisation | Docker, Docker Compose |
 | Dataset replay | AI4I 2020 Predictive Maintenance (Kaggle) |
 
----
-
-## What's Built ✅
-
-- [x] MQTT simulator — 3 robot arms × 3 sensors × 1s publish interval
-- [x] Fault injection engine — thermal drift, vibration spike, overcurrent
-- [x] Z-score anomaly detector — sliding window 30 samples, threshold 3.0σ
-- [x] InfluxDB writer — sensor readings + anomaly scores + fault mode tags
-- [x] FastAPI backend — 3 REST endpoints + health check + error handling
-- [x] Custom dashboard — dark theme, 3 sensor charts, Z-score chart, anomaly log
-- [x] Interactive sensor modal — live stats, mini chart, diagnostic recommendations
-- [x] Grafana dashboard — pre-provisioned, auto-loads on `docker compose up`
-- [x] AI4I 2020 dataset replay script — injects real fault data into the pipeline
-- [x] Docker Compose — 6-service stack, InfluxDB health check, automatic restart
-
