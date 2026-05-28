@@ -56,6 +56,24 @@ def _failure_label(row: dict) -> str:
     return "normal"
 
 
+def _on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print(f"[replay] unexpected disconnect rc={rc}; auto-reconnecting")
+
+
+def _connect_with_retry(client):
+    """Block until the broker accepts a connection, backing off between tries."""
+    delay = 1
+    while True:
+        try:
+            client.connect(BROKER_HOST, BROKER_PORT, keepalive=60)
+            return
+        except OSError as exc:
+            print(f"[replay] broker unavailable ({exc}); retrying in {delay}s")
+            time.sleep(delay)
+            delay = min(delay * 2, 30)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("csv_path", help="Path to ai4i2020.csv")
@@ -70,7 +88,9 @@ def main():
     args = parser.parse_args()
 
     client = mqtt.Client(client_id="dataset-replay")
-    client.connect(BROKER_HOST, BROKER_PORT, keepalive=60)
+    client.on_disconnect = _on_disconnect
+    client.reconnect_delay_set(min_delay=1, max_delay=30)
+    _connect_with_retry(client)
     client.loop_start()
     print(f"[replay] connected → {BROKER_HOST}:{BROKER_PORT}")
     print(f"[replay] delay={args.delay}s  failures-only={args.failures_only}")
