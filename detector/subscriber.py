@@ -1,4 +1,5 @@
 import json
+import os
 import signal
 import sys
 
@@ -7,8 +8,8 @@ import paho.mqtt.client as mqtt
 from influx_writer import InfluxWriter
 from zscore_detector import ZScoreDetector
 
-BROKER_HOST = "mosquitto"
-BROKER_PORT = 1883
+BROKER_HOST = os.getenv("BROKER_HOST", "localhost")
+BROKER_PORT = int(os.getenv("BROKER_PORT", "1883"))
 SUBSCRIBE_TOPIC = "factory/robot/#"
 
 detector = ZScoreDetector(window_size=30, threshold=3.0)
