@@ -1,6 +1,6 @@
-<div style="text-align:center">
+<div align="center">
 
-<h1 align="center">⚙️ iiot-smart-factory-sim</h1>
+<h1 align="center">⚙️ IIOT Smart Factory SIM</h1>
 
 **End-to-end Industry 4.0 IIoT simulator for real-time sensor monitoring and anomaly detection**  
 **using MQTT, Z-score detection, InfluxDB, and a live Grafana + custom web dashboard**
@@ -13,21 +13,17 @@
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/CONTAINER-Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
 
-[Quick Start](#-quickstart) · [Architecture](#-architecture) · [Sensors](#-sensor-configuration) · [Anomaly Detection](#-anomaly-detection) · [Dashboard](#-dashboard) · [API](#-api-usage) · [Docker](#-docker)
+[Overview](#-overview) · [Architecture](#-architecture) · [Quickstart](#-quickstart) · [Sensors](#-sensor-configuration) · [Anomaly Detection](#-anomaly-detection) · [API](#-api-usage) · [Dashboard](#-dashboard) · [Docker](#-docker)
 
 </div>
 
 ---
 
-## Problem 🏭
+## 🏭 Overview
 
 Modern automotive plants run hundreds of robotic arms continuously. Sensor data from each arm — temperature, vibration, motor current — streams at high frequency. A single undetected fault that escalates into mechanical failure can halt an entire assembly line, costing **€500,000+ per hour** in downtime.
 
 This project simulates that IIoT environment end-to-end: three robotic arms publishing live sensor telemetry over MQTT, a real-time sliding-window Z-score detector flagging anomalies as they occur, a time-series database storing every reading, and a custom dark-theme dashboard visualising the full picture — all containerised and deployable with one command.
-
----
-
-## What This Project Does 🎯
 
 | Step | Description |
 |------|-------------|
@@ -41,7 +37,22 @@ This project simulates that IIoT environment end-to-end: three robotic arms publ
 
 ---
 
-## Project Structure 🗂️
+## 🔌 Architecture
+
+![Architecture diagram: Docker Compose stack with six services. Simulator (3 arms, 9 channels) publishes via MQTT pub/sub to Mosquitto Broker on port 1883. Detector subscribes over HTTP, runs Z-score anomaly detection, and writes results to InfluxDB on port 8086. FastAPI on port 8000 queries InfluxDB via Flux and serves a Browser Dashboard over REST/JSON. Grafana on port 3000 also queries InfluxDB directly.](findings/architecture_readme.png)
+
+### Services
+
+| Service | Image | Port | Role |
+|---|---|---|---|
+| mosquitto | eclipse-mosquitto:2.0 | 1883 | MQTT broker |
+| influxdb | influxdb:2.7 | 8086 | Time-series storage |
+| simulator | custom python:3.11-slim | — | Sensor data publisher |
+| detector | custom python:3.11-slim | — | Z-score detector + InfluxDB writer |
+| api | custom python:3.11-slim | 8000 | Dashboard + REST API |
+| grafana | grafana/grafana:10.4.2 | 3000 | Pre-provisioned monitoring dashboard |
+
+### Project Structure
 
 ```text
 iiot-smart-factory-sim/
@@ -74,24 +85,71 @@ iiot-smart-factory-sim/
 
 ---
 
-## Architecture 🔌
+## 🚀 Quickstart
 
-![Architecture diagram: Docker Compose stack with six services. Simulator (3 arms, 9 channels) publishes via MQTT pub/sub to Mosquitto Broker on port 1883. Detector subscribes over HTTP, runs Z-score anomaly detection, and writes results to InfluxDB on port 8086. FastAPI on port 8000 queries InfluxDB via Flux and serves a Browser Dashboard over REST/JSON. Grafana on port 3000 also queries InfluxDB directly.](findings/architecture_readme.png)
+### Option A — Full Docker Stack (recommended)
 
-### Services
+```bash
+git clone https://github.com/abhi-faldu/iiot-smart-factory-sim.git
+cd iiot-smart-factory-sim
+docker compose up --build
+```
 
-| Service | Image | Port | Role |
-|---|---|---|---|
-| mosquitto | eclipse-mosquitto:2.0 | 1883 | MQTT broker |
-| influxdb | influxdb:2.7 | 8086 | Time-series storage |
-| simulator | custom python:3.11-slim | — | Sensor data publisher |
-| detector | custom python:3.11-slim | — | Z-score detector + InfluxDB writer |
-| api | custom python:3.11-slim | 8000 | Dashboard + REST API |
-| grafana | grafana/grafana:10.4.2 | 3000 | Pre-provisioned monitoring dashboard |
+Once the stack is up, the services are exposed on these ports:
+
+| Service | Port | Path |
+|---|---|---|
+| Custom dashboard | 8000 | `/` |
+| FastAPI docs | 8000 | `/docs` |
+| Grafana | 3000 | `/` |
+| InfluxDB | 8086 | `/` |
+
+> Data starts flowing within 5–10 seconds. Fault events appear within ~60–180 seconds.
+
+### Option B — Local Python (for development)
+
+```bash
+# 1 — Infrastructure only
+docker compose up mosquitto influxdb
+
+# 2 — Install dependencies
+pip install -r requirements.txt
+
+# 3 — Detector first (subscribe before publishing)
+cd detector && python subscriber.py
+
+# 4 — Simulator (new terminal)
+cd simulator && python publisher.py
+
+# 5 — API + dashboard (new terminal)
+cd api && uvicorn main:app --port 8000
+```
+
+Open the dashboard on port **8000** — it switches from the simulator feed to the live API automatically.
+
+### Option C — Replay Public Dataset (AI4I 2020)
+
+Test alert functionality with real labeled fault data:
+
+```bash
+# Download: kaggle datasets download stephanmatzka/predictive-maintenance-dataset-ai4i-2020
+# Save as: data/ai4i2020.csv
+
+python replay.py data/ai4i2020.csv --delay 0.2      # fast replay
+python replay.py data/ai4i2020.csv --failures-only  # only fault rows
+```
+
+Dataset column mapping:
+
+| AI4I Column | Sensor | Conversion |
+|---|---|---|
+| Air temperature [K] | temperature | K − 273.15 → °C |
+| Rotational speed [rpm] | vibration | rpm / 1000 → g proxy |
+| Torque [Nm] | current | Nm / 6 → A proxy |
 
 ---
 
-## Sensor Configuration 📡
+## 📡 Sensor Configuration
 
 Three robot arms (`arm_01`, `arm_02`, `arm_03`), each publishing three sensors every second to `factory/robot/<arm_id>/<sensor>`:
 
@@ -115,7 +173,7 @@ Three robot arms (`arm_01`, `arm_02`, `arm_03`), each publishing three sensors e
 
 ---
 
-## Anomaly Detection 🧠
+## 🧠 Anomaly Detection
 
 ### Z-Score Sliding Window
 
@@ -147,86 +205,22 @@ Faults last 20–60 cycles (~20–60 seconds), then the arm returns to normal. T
 
 ---
 
-## Quickstart 🚀
+## 🌐 API Usage
 
-### Option A — Full Docker Stack (recommended)
-
-```bash
-git clone https://github.com/abhi-faldu/iiot-smart-factory-sim.git
-cd iiot-smart-factory-sim
-docker compose up --build
-```
-
-| Service | URL |
-|---|---|
-| Custom dashboard | http://localhost:8000 |
-| Grafana | http://localhost:3000 |
-| InfluxDB | http://localhost:8086 |
-| FastAPI docs | http://localhost:8000/docs |
-
-> Data starts flowing within 5–10 seconds. Fault events appear within ~60–180 seconds.
-
----
-
-### Option B — Local Python (for development)
-
-```bash
-# 1 — Infrastructure only
-docker compose up mosquitto influxdb
-
-# 2 — Install dependencies
-pip install -r requirements.txt
-
-# 3 — Detector first (subscribe before publishing)
-cd detector && python subscriber.py
-
-# 4 — Simulator (new terminal)
-cd simulator && python publisher.py
-
-# 5 — API + dashboard (new terminal)
-cd api && uvicorn main:app --port 8000
-```
-
-Open **http://localhost:8000** — dashboard switches from simulator feed to live API automatically.
-
----
-
-### Option C — Replay Public Dataset (AI4I 2020)
-
-Test alert functionality with real labeled fault data:
-
-```bash
-# Download: kaggle datasets download stephanmatzka/predictive-maintenance-dataset-ai4i-2020
-# Save as: data/ai4i2020.csv
-
-python replay.py data/ai4i2020.csv --delay 0.2      # fast replay
-python replay.py data/ai4i2020.csv --failures-only  # only fault rows
-```
-
-Dataset column mapping:
-
-| AI4I Column | Sensor | Conversion |
-|---|---|---|
-| Air temperature [K] | temperature | K − 273.15 → °C |
-| Rotational speed [rpm] | vibration | rpm / 1000 → g proxy |
-| Torque [Nm] | current | Nm / 6 → A proxy |
-
----
-
-## API Usage 🌐
+All endpoints are served by FastAPI on port `8000`:
 
 ```bash
 # Latest reading for all arms
-curl http://localhost:8000/api/sensors/latest
+curl http://<host>:8000/api/sensors/latest
 
 # 15-minute history
-curl "http://localhost:8000/api/sensors/history?minutes=15"
+curl "http://<host>:8000/api/sensors/history?minutes=15"
 
 # Anomaly events (last 1 hour)
-curl http://localhost:8000/api/anomalies
+curl http://<host>:8000/api/anomalies
 
 # Health check
-curl http://localhost:8000/health
+curl http://<host>:8000/health
 ```
 
 **`/api/sensors/latest` response:**
@@ -256,9 +250,9 @@ curl http://localhost:8000/health
 
 ---
 
-## Dashboard 📊
+## 📊 Dashboard
 
-### Custom Web Dashboard (http://localhost:8000)
+### Custom Web Dashboard
 
 Dark-theme single-page dashboard built with vanilla JS + Chart.js. Polls the FastAPI backend every 2 seconds. Falls back to an in-browser simulator feed when the API is offline (shows orange "SIM FEED" pill — useful for portfolio demos without a running backend).
 
@@ -276,13 +270,13 @@ Dark-theme single-page dashboard built with vanilla JS + Chart.js. Polls the Fas
 - Fault-mode-aware diagnostic recommendations (4 action items)
 - Last 8 anomaly events for that specific arm/sensor
 
-### Grafana Dashboard (http://localhost:3000)
+### Grafana Dashboard
 
 Pre-provisioned at startup via `grafana/provisioning/`. No manual setup required.
 
 ---
 
-## Docker 🐳
+## 🐳 Docker
 
 ```bash
 # Full stack
@@ -302,7 +296,7 @@ docker compose down -v   # also removes data volumes
 
 ---
 
-## Tech Stack 🛠️
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -314,4 +308,3 @@ docker compose down -v   # also removes data volumes
 | Monitoring | Grafana 10.4 (pre-provisioned) |
 | Containerisation | Docker, Docker Compose |
 | Dataset replay | AI4I 2020 Predictive Maintenance (Kaggle) |
-
